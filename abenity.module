@@ -124,7 +124,6 @@ function abenity_form_user_profile_form_alter(&$form, $form_state, $form_id) {
     // Adjust the display of the abenity fields
     if ($user->uid > 1) {
       $form['field_abenity_username'][LANGUAGE_NONE][0]['#disabled'] = TRUE;
-      $form['field_abenity_password'][LANGUAGE_NONE][0]['#disabled'] = TRUE;
     }
   }
 }

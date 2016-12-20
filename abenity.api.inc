@@ -24,7 +24,6 @@ function abenity_get_abenity_credentials() {
  */
 function abenity_get_user_credentials($user_data) {
   $abenity_username = $user_data->field_abenity_username[LANGUAGE_NONE][0]['value'];
-  $abenity_password = $user_data->field_abenity_password[LANGUAGE_NONE][0]['value'];
 
   // Format the zip code
   $zip_code = $user_data->field_profile_address_address[LANGUAGE_NONE][0]['postal_code'];
@@ -38,9 +37,7 @@ function abenity_get_user_credentials($user_data) {
 
   if(!empty($abenity_username) && !empty($abenity_password)) {
     $user_credentials = array(
-      'username' => $abenity_username,
-      'password' =>  $abenity_password,
-      'client_user_id' => $user_data->name,
+      'client_user_id' => $abenity_username,
       'firstname' => $user_data->field_profile_firstname[LANGUAGE_NONE][0]['value'],
       'lastname' => $user_data->field_profile_lastname[LANGUAGE_NONE][0]['value'],
       'email' => $user_data->mail,
@@ -66,8 +63,6 @@ function abenity_api_register_member($user, $redirect = FALSE) {
     $member_id = $user_name;
   }
   $username = $member_id . '-' . $date->getTimestamp();
-  // Generate password
-  $password = user_password();
 
   // Format the zip code
   $zip_code = $user->field_profile_address_address[LANGUAGE_NONE][0]['postal_code'];
@@ -80,7 +75,7 @@ function abenity_api_register_member($user, $redirect = FALSE) {
   }
 
   $abenity_member_data_params = array(
-    'client_user_id' => $user->name,
+    'client_user_id' => $username,
     'firstname' => $user->field_profile_firstname[LANGUAGE_NONE][0]['value'],
     'lastname' => $user->field_profile_lastname[LANGUAGE_NONE][0]['value'],
     'address' => $user->field_profile_address_address[LANGUAGE_NONE][0]['thoroughfare'] . ' ' .$user->field_profile_address_address[LANGUAGE_NONE][0]['permises'],
@@ -89,8 +84,6 @@ function abenity_api_register_member($user, $redirect = FALSE) {
     'zip' => $zip_code,
     'country' => $country_code,
     'email' => $user->mail,
-    'username' => $username,
-    'password' => $password,
     'spotlight' => variable_get('abenity_api_spotlight', 1),
     'send_welcome_email' => variable_get('abenity_api_welcome_email', 1),
   );
@@ -112,12 +105,11 @@ function abenity_api_register_member($user, $redirect = FALSE) {
   $register_member_success = abenity_api_request_handler('registerMember', $abenity_member_data_params);
   if($register_member_success) {
     $user->field_abenity_username[LANGUAGE_NONE][0]['value'] = $username;
-    $user->field_abenity_password[LANGUAGE_NONE][0]['value'] = $password;
     user_save($user);
     if($redirect) {
       // Generate login url and redirect
       $user_credentials = array(
-        'client_user_id' => $user->name,
+        'client_user_id' => $username,
         'email' => $user->mail,
         'firstname' => $abenity_member_data_params['firstname'],
         'lastname' => $abenity_member_data_params['lastname'],
