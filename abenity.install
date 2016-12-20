@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * Delete the variables provided by app when uninstalled.
+ */
+function abenity_uninstall() {
+  variable_del('abenity_api_enabled');
+  variable_del('abenity_api_sandbox_mode');
+  variable_del('abenity_api_username');
+  variable_del('abenity_api_password');
+  variable_del('abenity_api_key');
+  variable_del('abenity_api_offer_radius');
+  variable_del('abenity_api_welcome_email');
+  variable_del('abenity_api_spotlight');
+  variable_del('abenity_disabled_message');
+  variable_del('abenity_failure_message');
+  variable_del('abenity_api_version');
+  variable_del('abenity_api_live_request_url');
+  variable_del('abenity_sso_privatekey');
+}

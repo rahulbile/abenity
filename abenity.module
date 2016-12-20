@@ -1,0 +1,130 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function abenity_menu() {
+  $items = array();
+
+  $items['admin/config/system/abenity'] = array(
+    'title' => 'Abenity API settings',
+    'description' => 'Abenity API settings.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('variable_group_form', 'abenity'),
+    'access arguments' => array('administer abenity'),
+  );
+
+  $items ['saves/abenity'] = array(
+    'title' => 'Access Abenity',
+    'page callback'  => 'abenity_abenitytoken_saves',
+    'access arguments' => array('access abenitytoken'),
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function abenity_permission() {
+  // Define a new permission for edition the abenity variables.
+  return array(
+    'administer abenity' =>  array(
+      'title' => t('Administer Abenity'),
+      'description' => t('Perform administration tasks for abenity configurations.'),
+    ),
+    'access abenitytoken' => array(
+      'title' => t('Access Abenity custom Login'),
+      'description' => t('Access Abenity custom Login.'),
+    ),
+  );
+}
+
+/**
+ * Registration/autologin to abenity
+ * Whenever user tries to access the callabck, check if his account details already
+ * exists, if so generate login url and reidrect, if not, create account and redirect to
+ * abenity.
+ */
+function abenity_abenitytoken_saves() {
+  global $user;
+  $user_data = user_load($user->uid);
+  module_load_include('inc', 'abenity', 'abenity.api');
+  $abenity_credentials = abenity_get_abenity_credentials();
+  if (!empty($abenity_credentials['abenity_api_enabled'])) {
+    $user_credentials = abenity_get_user_credentials($user_data);
+    if ($user_credentials) {
+      // User credential exists, so lets generate login url and redirect.
+      return abenity_sso_login($user_credentials, TRUE);
+    }
+    else {
+      // User is not yet registered, so lets create an account for him.
+      return abenity_api_register_member($user_data, TRUE);
+    }
+  }
+  else {
+    $output = variable_get('abenity_disabled_message', 'The perks systems is not available at the moment.');
+    return $output['value'];
+  }
+}
+
+/**
+ * Implements hook_user_update().
+ */
+function abenity_user_update(&$edit, $account, $category) {
+  // Check if the user was blocked.
+  if ($account->original->status != $account->status && $account->status == 0) {
+    // On user block, de-activite the abenity account if exists.
+    module_load_include('inc', 'abenity', 'abenity.api');
+    $user_credentials = abenity_get_user_credentials($account);
+    if($user_credentials) {
+      abenity_api_deactivate_member($user_credentials);
+    }
+  }
+  elseif ($account->original->status != $account->status && $account->status == 1) {
+    // On user active, re-activite the abenity account if exists.
+    module_load_include('inc', 'abenity', 'abenity.api');
+    $user_credentials = abenity_get_user_credentials($account);
+    if($user_credentials) {
+      abenity_api_reactivate_member($user_credentials);
+    }
+  }
+}
+
+/**
+ * Implements hook_user_delete().
+ */
+function abenity_user_delete($account) {
+  // On user delete deactivate the abenity account if exists.
+  module_load_include('inc', 'abenity', 'abenity.api');
+  $user_credentials = abenity_get_user_credentials($account);
+  if($user_credentials) {
+    abenity_api_deactivate_member($user_credentials);
+  }
+}
+
+/**
+ * Implements hook_mail().
+ */
+function abenity_mail($key, &$message, $params) {
+  switch ($key) {
+    case 'api_notify':
+      $message['subject']= t($params['subject']);
+      $message['body'][]= $params['body'];
+      $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
+      break;
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function abenity_form_user_profile_form_alter(&$form, $form_state, $form_id) {
+  if ($form['#user_category'] == 'account') {
+    global $user;
+    // Adjust the display of the abenity fields
+    if ($user->uid > 1) {
+      $form['field_abenity_username'][LANGUAGE_NONE][0]['#disabled'] = TRUE;
+      $form['field_abenity_password'][LANGUAGE_NONE][0]['#disabled'] = TRUE;
+    }
+  }
+}
